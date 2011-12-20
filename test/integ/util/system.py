@@ -198,9 +198,11 @@ class TestSystem(unittest.TestCase):
     
     # we're not running with a control socket so this just exercises the
     # failure case
-    
-    self.assertEquals(None, stem.util.system.get_pid_by_open_file("/tmp"))
-    self.assertEquals(None, stem.util.system.get_pid_by_open_file("/non-existnt-path"))
+    if stem.util.system.is_bsd():
+      self.skipTest("(Quicklook owns /tmp on Mac, this test always fails)")
+    else:    
+      self.assertEquals(None, stem.util.system.get_pid_by_open_file("/tmp"))
+      self.assertEquals(None, stem.util.system.get_pid_by_open_file("/non-existnt-path"))
   
   def test_get_cwd(self):
     """
