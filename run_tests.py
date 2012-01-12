@@ -30,8 +30,8 @@ import test.integ.connection.protocolinfo
 import stem.util.enum
 import stem.util.term as term
 
-OPT = "uic:t:h"
-OPT_EXPANDED = ["unit", "integ", "config=", "targets=", "help"]
+OPT = "uic:t:h:C"
+OPT_EXPANDED = ["unit", "integ", "config=", "targets=", "help", "chroot"]
 DIVIDER = "=" * 70
 
 # (name, class) tuples for all of our unit and integration tests
@@ -76,7 +76,7 @@ Runs tests for the stem library.
   -c, --config PATH     path to a custom test configuration
   -t, --target TARGET   comma separated list of extra targets for integ tests
   -h, --help            presents this help
-
+  -C, --chroot          runs tests in a chroot env
   Integration targets:
     %s
 """
@@ -122,6 +122,7 @@ if __name__ == '__main__':
   start_time = time.time()
   run_unit_tests = False
   run_integ_tests = False
+  chroot_env = False
   config_path = None
   test_config = stem.util.conf.get_config("test")
   
@@ -136,9 +137,9 @@ if __name__ == '__main__':
     if opt in ("-u", "--unit"): run_unit_tests = True
     elif opt in ("-i", "--integ"): run_integ_tests = True
     elif opt in ("-c", "--config"): config_path = os.path.abspath(arg)
+    elif opt in ("-C", "--chroot"): chroot_env = True; run_integ_tests = True
     elif opt in ("-t", "--targets"):
       integ_targets = arg.split(",")
-      
       # validates the targets
       if not integ_targets:
         print "No targets provided"
@@ -237,7 +238,10 @@ if __name__ == '__main__':
     # TorConnection.OPEN is the default if we don't have any defined
     if not connection_types:
       connection_types = [test.runner.TorConnection.OPEN]
-    
+
+    if chroot_env:
+      test.runner.CHROOT_ENV = True
+      
     for connection_type in connection_types:
       try:
         integ_runner.start(connection_type = connection_type)

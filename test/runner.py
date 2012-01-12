@@ -1,3 +1,4 @@
+
 """
 Runtime context for the integration tests. This is used both by the test runner
 to start and stop tor, and by the integration tests themselves for information
@@ -27,6 +28,7 @@ import logging
 import tempfile
 import binascii
 import threading
+import functools
 
 import stem.socket
 import stem.process
@@ -72,6 +74,9 @@ OPT_PORT = "ControlPort %i" % CONTROL_PORT
 OPT_COOKIE = "CookieAuthentication 1"
 OPT_PASSWORD = "HashedControlPassword 16:8C423A41EF4A542C6078985270AE28A4E04D056FB63F9F201505DB8E06"
 OPT_SOCKET = "ControlSocket %s" % CONTROL_SOCKET_PATH
+
+# Chroot env
+CHROOT_ENV = False
 
 # mapping of TorConnection to their options
 
@@ -136,7 +141,9 @@ class Runner:
     self._torrc_contents = ""
     self._connection_type = None
     self._tor_process = None
-  
+    self._chroot = False
+    self._original_recv = stem.socket.recv_message
+    
   def start(self, connection_type = DEFAULT_TOR_CONNECTION, quiet = False):
     """
     Makes temporary testing resources and starts tor, blocking until it
@@ -147,7 +154,7 @@ class Runner:
                           to tor
       quiet (bool) - if False then this prints status information as we start
                      up to stdout
-    
+
     Raises:
       OSError if unable to run test preparations or start tor
     """
@@ -184,12 +191,16 @@ class Runner:
     
     self._connection_type = connection_type
     self._torrc_contents = get_torrc(connection_type) % data_dir_path
-    
+
+      
     try:
       self._tor_cwd = os.getcwd()
       self._run_setup(quiet)
       self._start_tor(quiet)
-      
+
+      if CHROOT_ENV:
+        self._chroot = True
+        stem.socket.recv_message = functools.partial(stem.socket.stripping_function, self._original_recv, self.get_test_dir())
       # revert our cwd back to normal
       if self._config["test.integ.target.relative_data_dir"]:
         os.chdir(original_cwd)
@@ -213,7 +224,10 @@ class Runner:
     if self._tor_process:
       self._tor_process.kill()
       self._tor_process.communicate() # blocks until the process is done
-    
+
+    if self._chroot:
+      stem.socket.recv_message = self._original_recv
+      self._chroot = False
     # if we've made a temporary data directory then clean it up
     if self._test_dir and self._config["test.integ.test_directory"] == "":
       shutil.rmtree(self._test_dir, ignore_errors = True)
