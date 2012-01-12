@@ -335,9 +335,11 @@ class ControlMessage:
   individual message components stripped of protocol formatting.
   """
   
-  def __init__(self, parsed_content, raw_content):
+  def __init__(self, parsed_content, raw_content, prefix = False):
     self._parsed_content = parsed_content
     self._raw_content = raw_content
+    if prefix:
+      self.strip(prefix)
   
   def content(self):
     """
@@ -398,6 +400,23 @@ class ControlMessage:
     
     for _, _, content in self._parsed_content:
       yield ControlLine(content)
+
+  def strip(self, prefix):
+    """"
+    Strip "prefix" from Control Message. This is mainly used to test
+    a chroot environment.
+
+    Returns:
+    stem.socket.ControlMessage stripped of prefix
+    """
+    #self._raw_content = ''.join(self._raw_content.split(prefix, 1))
+    # Choice 1 - Strip prefix from the string
+    #self._parsed_content = ''.join(self._parsed_content.split(prefix, 1))
+
+    # Choice 2 - Strip prefix from every item in _parsed_content
+    #for item in self._parsed_content:
+    # for i in item:
+    #  ''.join(i.split(prefix,1))
 
 class ControlLine(str):
   """
@@ -672,34 +691,7 @@ def send_message(control_file, message, raw = False):
     LOGGER.info("Failed to send message: file has been closed")
     raise SocketClosed("file has been closed")
 
-def stripping_function(original_recv, prefix, control_file):
-  """"
-  Strip "prefix" from Control Message. This is mainly used to test
-  a chroot environment.
-
-  Arguments:
-    original_recv (function) -  the original recieve function (stem.socket.recv_message)
-    prefix (string)          -  the text to strip
-    control_file (file)      -  file derived from the control socket (see the
-                                socket's makefile() method for more information)
-
-  Returns:
-    stem.socket.ControlMessage stripped of prefix
-  """
-
-  control_message = original_recv(control_file)
-  #control_message._raw_content = ''.join(control_message._raw_content.split(prefix, 1))
-  # Choice 1 - Strip prefix from the string
-  #control_message._parsed_content = ''.join(control_message._parsed_content.split(prefix, 1))
-
-  # Choice 2 - Strip prefix from every item in _parsed_content
-  #for item in control_message._parsed_content:
-  # for i in item:
-  #  ''.join(i.split(prefix,1))
-  
-  return control_message
-
-def recv_message(control_file):
+def recv_message(control_file, prefix = False):
   """
   Pulls from a control socket until we either have a complete message or
   encounter a problem.
@@ -707,7 +699,8 @@ def recv_message(control_file):
   Arguments:
     control_file (file) - file derived from the control socket (see the
                           socket's makefile() method for more information)
-  
+    prefix (bool) - If not False then strip prefix from content
+    
   Returns:
     stem.socket.ControlMessage read from the socket
   
@@ -770,7 +763,7 @@ def recv_message(control_file):
       div = "\n" if "\n" in log_message else " "
       LOGGER.debug("Received:" + div + log_message)
       
-      return ControlMessage(parsed_content, raw_content)
+      return ControlMessage(parsed_content, raw_content, prefix)
     elif divider == "+":
       # data entry, all of the following lines belong to the content until we
       # get a line with just a period

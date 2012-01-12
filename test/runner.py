@@ -141,7 +141,9 @@ class Runner:
     self._torrc_contents = ""
     self._connection_type = None
     self._tor_process = None
-  
+    self._chroot = False
+    self._original_recv = stem.socket.recv_message
+    
   def start(self, connection_type = DEFAULT_TOR_CONNECTION, quiet = False):
     """
     Makes temporary testing resources and starts tor, blocking until it
@@ -197,9 +199,8 @@ class Runner:
       self._start_tor(quiet)
 
       if CHROOT_ENV:
-        self.chroot = True
-        self.original_recv = stem.socket.recv_message
-        stem.socket.recv_message = functools.partial(stem.socket.stripping_function, self.original_recv, self.get_test_dir())
+        self._chroot = True
+        stem.socket.recv_message = functools.partial(stem.socket.recv_message, prefix = self.get_test_dir())
       # revert our cwd back to normal
       if self._config["test.integ.target.relative_data_dir"]:
         os.chdir(original_cwd)
@@ -224,9 +225,9 @@ class Runner:
       self._tor_process.kill()
       self._tor_process.communicate() # blocks until the process is done
 
-    if self.chroot:
-      stem.socket.recv_message = self.original_recv
-      self.chroot = False
+    if self._chroot:
+      stem.socket.recv_message = self._original_recv
+      self._chroot = False
     # if we've made a temporary data directory then clean it up
     if self._test_dir and self._config["test.integ.test_directory"] == "":
       shutil.rmtree(self._test_dir, ignore_errors = True)
