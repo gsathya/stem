@@ -51,6 +51,8 @@ LOGGER = logging.getLogger("stem.socket")
 
 KEY_ARG = re.compile("^(\S+)=")
 
+CHROOT_PREFIX = None
+
 # Escape sequences from the 'esc_for_log' function of tor's 'common/util.c'.
 # It's hard to tell what controller functions use this in practice, but direct
 # users are...
@@ -335,11 +337,11 @@ class ControlMessage:
   individual message components stripped of protocol formatting.
   """
   
-  def __init__(self, parsed_content, raw_content, prefix = False):
+  def __init__(self, parsed_content, raw_content):
     self._parsed_content = parsed_content
     self._raw_content = raw_content
-    if prefix:
-      self.strip(prefix)
+    if CHROOT_PREFIX:
+      self.strip(CHROOT_PREFIX)
   
   def content(self):
     """
@@ -691,7 +693,7 @@ def send_message(control_file, message, raw = False):
     LOGGER.info("Failed to send message: file has been closed")
     raise SocketClosed("file has been closed")
 
-def recv_message(control_file, prefix = False):
+def recv_message(control_file):
   """
   Pulls from a control socket until we either have a complete message or
   encounter a problem.
@@ -699,7 +701,6 @@ def recv_message(control_file, prefix = False):
   Arguments:
     control_file (file) - file derived from the control socket (see the
                           socket's makefile() method for more information)
-    prefix (bool) - If not False then strip prefix from content
     
   Returns:
     stem.socket.ControlMessage read from the socket
@@ -763,7 +764,7 @@ def recv_message(control_file, prefix = False):
       div = "\n" if "\n" in log_message else " "
       LOGGER.debug("Received:" + div + log_message)
       
-      return ControlMessage(parsed_content, raw_content, prefix)
+      return ControlMessage(parsed_content, raw_content)
     elif divider == "+":
       # data entry, all of the following lines belong to the content until we
       # get a line with just a period

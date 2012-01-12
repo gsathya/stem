@@ -142,7 +142,6 @@ class Runner:
     self._connection_type = None
     self._tor_process = None
     self._chroot = False
-    self._original_recv = stem.socket.recv_message
     
   def start(self, connection_type = DEFAULT_TOR_CONNECTION, quiet = False):
     """
@@ -199,8 +198,7 @@ class Runner:
       self._start_tor(quiet)
 
       if CHROOT_ENV:
-        self._chroot = True
-        stem.socket.recv_message = functools.partial(stem.socket.recv_message, prefix = self.get_test_dir())
+        stem.socket.CHROOT_PREFIX = self.get_test_dir()
       # revert our cwd back to normal
       if self._config["test.integ.target.relative_data_dir"]:
         os.chdir(original_cwd)
@@ -226,7 +224,7 @@ class Runner:
       self._tor_process.communicate() # blocks until the process is done
 
     if self._chroot:
-      stem.socket.recv_message = self._original_recv
+      stem.socket.CHROOT_PREFIX = None
       self._chroot = False
     # if we've made a temporary data directory then clean it up
     if self._test_dir and self._config["test.integ.test_directory"] == "":
