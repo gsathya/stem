@@ -231,11 +231,23 @@ class Config():
     Provides all keys in the currently loaded configuration.
     
     Returns:
-      list if strings for the configuration keys we've loaded
+      list of strings for the configuration keys we've loaded
     """
     
     return self._contents.keys()
-  
+
+  def iterkeys(self):
+    """
+    Provides an iterable over all the keys in the currently
+    loaded configuration.
+    
+    Returns:
+      Iterable over the list of strings for the configuration
+      keys we've loaded
+    """
+    
+    return self._contents.iterkeys()
+    
   def unused_keys(self):
     """
     Provides the configuration keys that have never been provided to a caller
