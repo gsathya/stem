@@ -452,10 +452,20 @@ class Config():
     else: return [int(val) for val in conf_comp]
 
   def save(self):
+    """
+    Saves the key, value pairs in the current cofiguration
+    contents by overwriting the original config file.
+
+    Minor caveat : This deletes the comments in the original
+    config file(since it overwrites it)
+    """
+    
+    return self._contents.keys()
+
     self._contents_lock.acquire()
 
-    with open(path, 'w') as f:
-      for entry in self.keys():
-        f.write('%s %s\n' % (entry, self.get(entry)))
+    with open(path, 'w') as output_file:
+      for entry in sorted(self.iterkeys()):
+        output_file.write('%s %s\n' % (entry, self.get(entry)))
 
     self._contents_lock.release()
