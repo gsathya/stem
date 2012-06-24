@@ -16,6 +16,7 @@ interacting at a higher level.
     |- get_info - issues a GETINFO query
     |- get_version - convenience method to get tor version
     |- authenticate - convenience method to authenticate the controller
+    |- quit - convenience method to terminate the controller
     +- protocolinfo - convenience method to get the protocol info
   
   BaseController - Base controller class asynchronous message handling.
@@ -502,6 +503,16 @@ class Controller(BaseController):
       version_str = version_str[:version_str.find(' ')]
     
     return stem.version.Version(version_str)
+  
+  def quit(self):
+    """
+    A convenience method to terminate the controller.
+    
+    :raises: :class:`stem.socket.ControllerError` if the call fails, and we weren't provided a default response
+    """
+    self.msg("QUIT")
+    self._socket._is_alive = False
+    self._socket.close()
   
   def authenticate(self, *args, **kwargs):
     """

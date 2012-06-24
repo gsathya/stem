@@ -103,6 +103,19 @@ class TestController(unittest.TestCase):
       controller.authenticate(test.runner.CONTROL_PASSWORD)
       test.runner.exercise_controller(self, controller)
   
+  def test_quit(self):
+    """
+    Test that the convenient method quit() works.
+    """
+    
+    if test.runner.require_control(self): return
+    
+    runner = test.runner.get_runner()
+    with runner.get_tor_controller(False) as controller:
+      controller.msg("QUIT")
+      self.assertRaises(stem.socket.SocketClosed, controller.protocolinfo)
+      self.assertEqual(controller._socket.is_alive(), False)
+  
   def test_protocolinfo(self):
     """
     Test that the convenient method protocolinfo() works.
