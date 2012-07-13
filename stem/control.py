@@ -511,9 +511,8 @@ class Controller(BaseController):
     :raises: :class:`stem.socket.ControllerError` if the call fails, and we weren't provided a default response
     """
     self.msg("QUIT")
-    self._socket._is_alive = False
-    self._socket.close()
-  
+    self.close()
+    
   def authenticate(self, *args, **kwargs):
     """
     A convenience method to authenticate the controller.

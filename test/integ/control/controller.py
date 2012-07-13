@@ -112,9 +112,9 @@ class TestController(unittest.TestCase):
     
     runner = test.runner.get_runner()
     with runner.get_tor_controller(False) as controller:
-      controller.msg("QUIT")
-      self.assertRaises(stem.socket.SocketClosed, controller.protocolinfo)
+      controller.quit()
       self.assertEqual(controller._socket.is_alive(), False)
+      self.assertRaises(stem.socket.SocketClosed, controller.authenticate(test.runner.CONTROL_PASSWORD))
   
   def test_protocolinfo(self):
     """
